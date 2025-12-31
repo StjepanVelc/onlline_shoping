@@ -3,7 +3,7 @@ from typing import List, Tuple
 
 class Order:
     def __init__(self, id: int, user_id: int, address: str):
-        # --- OBAVEZNI PODACI ---
+        
         if not isinstance(id, int) or id <= 0:
             raise ValueError("Order ID must be a positive integer.")
 

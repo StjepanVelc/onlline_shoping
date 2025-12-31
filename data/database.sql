@@ -1,4 +1,4 @@
--- Obavezno: InnoDB + UTF8MB4
+-- InnoDB + UTF8MB4
 SET NAMES utf8mb4;
 SET sql_require_primary_key = OFF;
 
@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS admins (
   PRIMARY KEY (id)
 );
 
--- 1) ubaci jednog admina
+-- 1) napravi
 INSERT INTO admins (username, email, privileges)
 VALUES ('stjepan', 'stjepan@example.com', '["access_data","manage_users"]') RETURNING id;
 
