@@ -1,20 +1,8 @@
-from typing import Optional, Tuple, Any
+from typing import Any, Optional, Tuple
 
 
 class UserRepository:
-    """
-    Repozitorij za tabelu `users`.
-
-    Očekuje konekciju kompatibilnu sa psycopg2:
-      - conn.cursor() kao context manager
-      - cursor.execute(sql, params)
-      - cursor.fetchone(), cursor.rowcount
-      - conn.commit(), conn.rollback()
-
-    Parametar:
-      autocommit (bool): True  -> svaka metoda sama radi commit/rollback
-                         False -> commit/rollback radi pozivatelj (service layer)
-    """
+    """Repository for the SQLite `users` table."""
 
     def __init__(self, db_connection, *, autocommit: bool = True):
         self.db = db_connection
@@ -31,38 +19,30 @@ class UserRepository:
     # ---------- READ ----------
 
     def get_user_by_id(self, user_id: int) -> Optional[Tuple[Any, ...]]:
-        """
-        Vrati korisnika po ID-u (id, username, email) ili None ako ne postoji.
-        Ako želiš dict umjesto tuple-a, kreiraj konekciju sa RealDictCursor.
-        """
-        with self.db.cursor() as cur:
-            cur.execute(
-                "SELECT id, username, email FROM users WHERE id = %s",
-                (user_id,),
-            )
-            return cur.fetchone()
+        """Return user by id as tuple (id, username, email, country) or None."""
+        row = self.db.execute(
+            "SELECT id, username, email, country FROM users WHERE id = ?",
+            (user_id,),
+        ).fetchone()
+        return tuple(row) if row else None
 
     def get_user_by_username(self, username: str) -> Optional[Tuple[Any, ...]]:
-        with self.db.cursor() as cur:
-            cur.execute(
-                "SELECT id, username, email FROM users WHERE username = %s",
-                (username,),
-            )
-            return cur.fetchone()
+        row = self.db.execute(
+            "SELECT id, username, email, country FROM users WHERE username = ?",
+            (username,),
+        ).fetchone()
+        return tuple(row) if row else None
 
     # ---------- WRITE ----------
 
-    def create_user(self, username: str, email: str) -> int:
-        """
-        Kreira korisnika i vraća novi id.
-        """
+    def create_user(self, username: str, email: str, country: str = "Unknown") -> int:
+        """Create a user and return the newly created id."""
         try:
-            with self.db.cursor() as cur:
-                cur.execute(
-                    "INSERT INTO users (username, email) VALUES (%s, %s) RETURNING id",
-                    (username, email),
-                )
-                new_id = cur.fetchone()[0]
+            cur = self.db.execute(
+                "INSERT INTO users (username, email, country) VALUES (?, ?, ?)",
+                (username, email, country),
+            )
+            new_id = int(cur.lastrowid)
             self._maybe_commit()
             return new_id
         except Exception:
@@ -70,16 +50,13 @@ class UserRepository:
             raise
 
     def update_user_email(self, user_id: int, new_email: str) -> bool:
-        """
-        Ažurira email; vraća True ako je išta promijenjeno.
-        """
+        """Update user email; returns True when a row is changed."""
         try:
-            with self.db.cursor() as cur:
-                cur.execute(
-                    "UPDATE users SET email = %s WHERE id = %s",
-                    (new_email, user_id),
-                )
-                updated = cur.rowcount > 0
+            cur = self.db.execute(
+                "UPDATE users SET email = ? WHERE id = ?",
+                (new_email, user_id),
+            )
+            updated = cur.rowcount > 0
             self._maybe_commit()
             return updated
         except Exception:
@@ -87,16 +64,13 @@ class UserRepository:
             raise
 
     def delete_user(self, user_id: int) -> bool:
-        """
-        Briše korisnika; vraća True ako je red obrisan.
-        """
+        """Delete user; returns True when a row is deleted."""
         try:
-            with self.db.cursor() as cur:
-                cur.execute(
-                    "DELETE FROM users WHERE id = %s",
-                    (user_id,),
-                )
-                deleted = cur.rowcount > 0
+            cur = self.db.execute(
+                "DELETE FROM users WHERE id = ?",
+                (user_id,),
+            )
+            deleted = cur.rowcount > 0
             self._maybe_commit()
             return deleted
         except Exception:

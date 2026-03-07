@@ -1,20 +1,8 @@
-from typing import Optional, Tuple, Any, List
+from typing import Any, List, Optional, Tuple
 
 
 class ProductRepository:
-    """
-    Repozitorij za tabelu `products`.
-
-    Kolone (preporučeno):
-      id SERIAL PRIMARY KEY
-      name VARCHAR(200) NOT NULL
-      price NUMERIC(12,2) NOT NULL CHECK (price >= 0)
-      stock INTEGER NOT NULL CHECK (stock >= 0)
-
-    Parametar:
-      autocommit (bool): True  -> svaka metoda sama radi commit/rollback
-                         False -> commit/rollback radi pozivatelj
-    """
+    """Repository for the SQLite `products` table."""
 
     def __init__(self, db_connection, *, autocommit: bool = True):
         self.db = db_connection
@@ -31,42 +19,35 @@ class ProductRepository:
     # ---------- READ ----------
 
     def get_product_by_id(self, product_id: int) -> Optional[Tuple[Any, ...]]:
-        """
-        Vrati proizvod po ID-u (id, name, price, stock) ili None.
-        """
-        with self.db.cursor() as cur:
-            cur.execute(
-                "SELECT id, name, price, stock FROM products WHERE id = %s",
-                (product_id,),
-            )
-            return cur.fetchone()
+        """Return product by id as tuple (id, name, price, stock) or None."""
+        row = self.db.execute(
+            "SELECT id, name, price, stock FROM products WHERE id = ?",
+            (product_id,),
+        ).fetchone()
+        return tuple(row) if row else None
 
     def list_products(
         self, *, limit: int = 50, offset: int = 0
     ) -> List[Tuple[Any, ...]]:
-        """
-        Lista proizvode sa paginacijom.
-        """
-        with self.db.cursor() as cur:
-            cur.execute(
-                "SELECT id, name, price, stock FROM products ORDER BY id LIMIT %s OFFSET %s",
-                (limit, offset),
-            )
-            return cur.fetchall()
+        """List products with pagination."""
+        rows = self.db.execute(
+            "SELECT id, name, price, stock FROM products ORDER BY id LIMIT ? OFFSET ?",
+            (limit, offset),
+        ).fetchall()
+        return [tuple(row) for row in rows]
 
     # ---------- WRITE ----------
 
-    def add_product(self, name: str, price: float, stock: int) -> int:
-        """
-        Dodaje proizvod i vraća novi id.
-        """
+    def add_product(
+        self, name: str, price: float, stock: int, description: Optional[str] = None
+    ) -> int:
+        """Create a product and return the newly created id."""
         try:
-            with self.db.cursor() as cur:
-                cur.execute(
-                    "INSERT INTO products (name, price, stock) VALUES (%s, %s, %s) RETURNING id",
-                    (name, price, stock),
-                )
-                new_id = cur.fetchone()[0]
+            cur = self.db.execute(
+                "INSERT INTO products (name, description, price, stock) VALUES (?, ?, ?, ?)",
+                (name, description, price, stock),
+            )
+            new_id = int(cur.lastrowid)
             self._maybe_commit()
             return new_id
         except Exception:
@@ -74,16 +55,13 @@ class ProductRepository:
             raise
 
     def update_product_stock(self, product_id: int, new_stock: int) -> bool:
-        """
-        Postavlja apsolutni stock; vraća True ako je promijenjeno.
-        """
+        """Set absolute stock and return True if a row was changed."""
         try:
-            with self.db.cursor() as cur:
-                cur.execute(
-                    "UPDATE products SET stock = %s WHERE id = %s",
-                    (new_stock, product_id),
-                )
-                updated = cur.rowcount > 0
+            cur = self.db.execute(
+                "UPDATE products SET stock = ? WHERE id = ?",
+                (new_stock, product_id),
+            )
+            updated = cur.rowcount > 0
             self._maybe_commit()
             return updated
         except Exception:
@@ -91,23 +69,18 @@ class ProductRepository:
             raise
 
     def adjust_stock(self, product_id: int, delta: int) -> bool:
-        """
-        Povećava/smanjuje stock za delta. Negativan delta smanjuje.
-        Ne dopušta negativan stock.
-        """
+        """Adjust stock by delta without allowing negative stock."""
         try:
-            with self.db.cursor() as cur:
-                # Atomicna provjera da ne ode ispod nule
-                cur.execute(
-                    """
-                    UPDATE products
-                    SET stock = stock + %s
-                    WHERE id = %s
-                      AND stock + %s >= 0
-                    """,
-                    (delta, product_id, delta),
-                )
-                updated = cur.rowcount > 0
+            cur = self.db.execute(
+                """
+                UPDATE products
+                SET stock = stock + ?
+                WHERE id = ?
+                  AND stock + ? >= 0
+                """,
+                (delta, product_id, delta),
+            )
+            updated = cur.rowcount > 0
             self._maybe_commit()
             return updated
         except Exception:
@@ -115,16 +88,13 @@ class ProductRepository:
             raise
 
     def update_product_price(self, product_id: int, new_price: float) -> bool:
-        """
-        Ažurira cijenu; vraća True ako je promijenjeno.
-        """
+        """Update product price and return True if a row was changed."""
         try:
-            with self.db.cursor() as cur:
-                cur.execute(
-                    "UPDATE products SET price = %s WHERE id = %s",
-                    (new_price, product_id),
-                )
-                updated = cur.rowcount > 0
+            cur = self.db.execute(
+                "UPDATE products SET price = ? WHERE id = ?",
+                (new_price, product_id),
+            )
+            updated = cur.rowcount > 0
             self._maybe_commit()
             return updated
         except Exception:
@@ -132,16 +102,13 @@ class ProductRepository:
             raise
 
     def delete_product(self, product_id: int) -> bool:
-        """
-        Briše proizvod; vraća True ako je red obrisan.
-        """
+        """Delete product and return True if a row was deleted."""
         try:
-            with self.db.cursor() as cur:
-                cur.execute(
-                    "DELETE FROM products WHERE id = %s",
-                    (product_id,),
-                )
-                deleted = cur.rowcount > 0
+            cur = self.db.execute(
+                "DELETE FROM products WHERE id = ?",
+                (product_id,),
+            )
+            deleted = cur.rowcount > 0
             self._maybe_commit()
             return deleted
         except Exception:

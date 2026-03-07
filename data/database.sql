@@ -1,98 +1,76 @@
--- InnoDB + UTF8MB4
-SET NAMES utf8mb4;
-SET sql_require_primary_key = OFF;
+﻿-- ============================================
+-- SQLite Database Schema for Online Shop
+-- ============================================
+-- Created: 2026-03-07
+-- Usage: Automatically executed by init_db() in data/base.py
+-- Manual run: sqlite3 data/shop.db < data/database.sql
+-- ============================================
 
--- USERS
-CREATE TABLE users (
-  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  username VARCHAR(50) NOT NULL,
-  email VARCHAR(100) NOT NULL,
-  country VARCHAR(50) NOT NULL,
-  PRIMARY KEY (id),
-  CONSTRAINT uq_users_username UNIQUE (username),
-  CONSTRAINT uq_users_email    UNIQUE (email)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+PRAGMA foreign_keys = ON;
 
--- PRODUCTS
-CREATE TABLE products (
-  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  name VARCHAR(100) NOT NULL,
-  description TEXT,
-  price DECIMAL(10,2) NOT NULL,
-  stock INT NOT NULL,
-  PRIMARY KEY (id),
-  CONSTRAINT chk_products_price CHECK (price >= 0),
-  CONSTRAINT chk_products_stock CHECK (stock >= 0)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- ORDERS
-CREATE TABLE orders (
-  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  user_id INT UNSIGNED NOT NULL,
-  address VARCHAR(200) NOT NULL,
-  status ENUM('pending','paid','shipped','cancelled') NOT NULL DEFAULT 'pending',
-  order_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  total_amount DECIMAL(10,2) DEFAULT NULL,
-  PRIMARY KEY (id),
-  CONSTRAINT fk_orders_user
-    FOREIGN KEY (user_id) REFERENCES users(id)
-    ON UPDATE CASCADE ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- ORDER_ITEMS
-CREATE TABLE order_items (
-  order_id INT UNSIGNED NOT NULL,
-  product_id INT UNSIGNED NOT NULL,
-  quantity INT NOT NULL,
-  price DECIMAL(10,2) NOT NULL,
-  PRIMARY KEY (order_id, product_id),
-  CONSTRAINT fk_items_order
-    FOREIGN KEY (order_id) REFERENCES orders(id)
-    ON UPDATE CASCADE ON DELETE CASCADE,
-  CONSTRAINT fk_items_product
-    FOREIGN KEY (product_id) REFERENCES products(id)
-    ON UPDATE CASCADE ON DELETE RESTRICT,
-  CONSTRAINT chk_items_qty CHECK (quantity > 0),
-  CONSTRAINT chk_items_price CHECK (price >= 0)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- Indeksi za optimizaciju upita
--- USERS
-CREATE INDEX idx_users_country ON users(country);
-
--- PRODUCTS
-CREATE INDEX idx_products_price ON products(price);
-
--- ORDERS
-CREATE INDEX idx_orders_user_date   ON orders(user_id, order_date DESC);
-CREATE INDEX idx_orders_status_date ON orders(status, order_date);
-
--- ORDER_ITEMS
--- dodatni indeks za upite "sve narudžbe za proizvod X":
-CREATE INDEX idx_order_items_product_id ON order_items(product_id);
-
--- Administrativne napomene
-CREATE ADMINISTRATIVE NOTE = 'Database schema for e-commerce platform with users, products, orders, and order items.';
-
--- ADMIN TABLE OF CONTENTS
--- MySQL 8.0 varijanta
-CREATE TABLE IF NOT EXISTS admins (
-  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  username VARCHAR(100) NOT NULL UNIQUE,
-  email    VARCHAR(255) NOT NULL UNIQUE,
-  privileges JSON NOT NULL,
-  PRIMARY KEY (id)
+-- ============================================
+-- USERS TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    email TEXT NOT NULL UNIQUE,
+    country TEXT NOT NULL
 );
 
--- 1) napravi
-INSERT INTO admins (username, email, privileges)
-VALUES ('stjepan', 'stjepan@example.com', '["access_data","manage_users"]') RETURNING id;
+-- ============================================
+-- ADMINS TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS admins (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    email TEXT NOT NULL UNIQUE,
+    privileges TEXT NOT NULL DEFAULT '[]'
+);
 
--- 2) pročitaj
-SELECT id, username, email, privileges FROM admins WHERE username='stjepan';
+-- ============================================
+-- PRODUCTS TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS products (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    description TEXT,
+    price REAL NOT NULL CHECK (price >= 0),
+    stock INTEGER NOT NULL CHECK (stock >= 0)
+);
 
--- 3) update privilegija
-UPDATE admins SET privileges='["access_data"]'::jsonb WHERE username='stjepan';
+-- ============================================
+-- ORDERS TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS orders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    address TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    order_date TEXT NOT NULL DEFAULT (datetime('now')),
+    total_amount REAL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT
+);
 
--- 4) delete (po želji)
-DELETE FROM admins WHERE username='stjepan';
+-- ============================================
+-- ORDER_ITEMS TABLE (junction table)
+-- ============================================
+CREATE TABLE IF NOT EXISTS order_items (
+    order_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL,
+    quantity INTEGER NOT NULL CHECK (quantity > 0),
+    price REAL NOT NULL CHECK (price >= 0),
+    PRIMARY KEY (order_id, product_id),
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT
+);
+
+-- ============================================
+-- INDEXES for performance optimization
+-- ============================================
+CREATE INDEX IF NOT EXISTS idx_users_country ON users(country);
+CREATE INDEX IF NOT EXISTS idx_admins_username ON admins(username);
+CREATE INDEX IF NOT EXISTS idx_products_price ON products(price);
+CREATE INDEX IF NOT EXISTS idx_orders_user_date ON orders(user_id, order_date DESC);
+CREATE INDEX IF NOT EXISTS idx_orders_status_date ON orders(status, order_date);
+CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON order_items(product_id);

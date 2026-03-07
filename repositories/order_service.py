@@ -1,4 +1,3 @@
-from models.order import Order
 from repositories.user_repo import UserRepository
 from repositories.product_repo import ProductRepository
 from repositories.order_repo import OrderRepository
@@ -18,12 +17,12 @@ class OrderService:
     def create_simple_order(
         self,
         *,
-        order_id: int,
         user_id: int,
         product_id: int,
         quantity: int,
         address: str,
     ) -> int:
+        """Create a single-product order and return the new order id."""
 
         # --- USER ---
         user = self.user_repo.get_user_by_id(user_id)
@@ -39,18 +38,17 @@ class OrderService:
         if stock < quantity:
             raise ValueError("Not enough stock.")
 
-        # --- ORDER DOMAIN ---
-        order = Order(order_id, user_id, address)
-        order.add_product(product, quantity)
-        order.confirm()
-
         # --- DB TRANSACTION ---
         self.product_repo.autocommit = False
         self.order_repo.autocommit = False
         self.user_repo.autocommit = False
 
         try:
-            new_order_id = self.order_repo.create_order(order)
+            new_order_id = self.order_repo.create_order(
+                user_id=user_id,
+                address=address,
+                status="confirmed",
+            )
             self.product_repo.adjust_stock(product_id, -quantity)
 
             self.order_repo.db.commit()
