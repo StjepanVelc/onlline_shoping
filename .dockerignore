@@ -1,0 +1,13 @@
+.git
+.gitignore
+.vscode
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite
+*.sqlite3
+data/shop.db

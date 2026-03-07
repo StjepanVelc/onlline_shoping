@@ -40,12 +40,21 @@ pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
-### 3. Access API
+### 3. Run with Docker
+
+```powershell
+docker compose up --build
+```
+
+- API: http://127.0.0.1:8000
+- Data is persisted via volume mapping: `./data:/app/data`
+
+### 4. Access API
 
 - **Swagger UI**: http://127.0.0.1:8000/docs
 - **ReDoc**: http://127.0.0.1:8000/redoc
 
-### 4. Bootstrap Admin (First Time)
+### 5. Bootstrap Admin (First Time)
 
 ```http
 POST /auth/bootstrap-admin
@@ -57,7 +66,7 @@ POST /auth/bootstrap-admin
 }
 ```
 
-### 5. Obtain JWT Token
+### 6. Obtain JWT Token
 
 ```http
 POST /auth/token
@@ -67,3 +76,8 @@ Form Data:
 ```
 
 Use the returned `access_token` as Bearer token in Swagger Authorize button.
+
+Run with Docker
+
+docker compose up --build
+API available at http://localhost:8000/docs
