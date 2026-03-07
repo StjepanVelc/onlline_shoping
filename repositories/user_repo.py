@@ -1,8 +1,8 @@
-from typing import Any, Optional, Tuple
+from typing import Dict, List, Optional
 
 
 class UserRepository:
-    """Repository for the SQLite `users` table."""
+    """SQLite data access for users."""
 
     def __init__(self, db_connection, *, autocommit: bool = True):
         self.db = db_connection
@@ -16,63 +16,62 @@ class UserRepository:
         if self.autocommit:
             self.db.rollback()
 
-    # ---------- READ ----------
+    @staticmethod
+    def _row_to_dict(row) -> Optional[Dict]:
+        return dict(row) if row else None
 
-    def get_user_by_id(self, user_id: int) -> Optional[Tuple[Any, ...]]:
-        """Return user by id as tuple (id, username, email, country) or None."""
-        row = self.db.execute(
-            "SELECT id, username, email, country FROM users WHERE id = ?",
-            (user_id,),
-        ).fetchone()
-        return tuple(row) if row else None
-
-    def get_user_by_username(self, username: str) -> Optional[Tuple[Any, ...]]:
-        row = self.db.execute(
-            "SELECT id, username, email, country FROM users WHERE username = ?",
-            (username,),
-        ).fetchone()
-        return tuple(row) if row else None
-
-    # ---------- WRITE ----------
-
-    def create_user(self, username: str, email: str, country: str = "Unknown") -> int:
-        """Create a user and return the newly created id."""
+    def create_user(self, username: str, email: str, country: str) -> int:
         try:
             cur = self.db.execute(
                 "INSERT INTO users (username, email, country) VALUES (?, ?, ?)",
                 (username, email, country),
             )
-            new_id = int(cur.lastrowid)
             self._maybe_commit()
-            return new_id
+            return int(cur.lastrowid)
         except Exception:
             self._maybe_rollback()
             raise
 
-    def update_user_email(self, user_id: int, new_email: str) -> bool:
-        """Update user email; returns True when a row is changed."""
+    def list_users(self, q: Optional[str], limit: int, offset: int) -> List[Dict]:
+        sql = "SELECT id, username, email, country FROM users"
+        params = []
+        if q:
+            sql += " WHERE username LIKE ? OR email LIKE ?"
+            like = f"%{q}%"
+            params.extend([like, like])
+        sql += " ORDER BY id LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+        rows = self.db.execute(sql, params).fetchall()
+        return [dict(row) for row in rows]
+
+    def get_user_by_id(self, user_id: int) -> Optional[Dict]:
+        row = self.db.execute(
+            "SELECT id, username, email, country FROM users WHERE id = ?",
+            (user_id,),
+        ).fetchone()
+        return self._row_to_dict(row)
+
+    def update_user(self, user_id: int, fields: Dict) -> bool:
+        if not fields:
+            return False
+        set_clause = ", ".join(f"{col} = ?" for col in fields)
+        params = list(fields.values()) + [user_id]
         try:
             cur = self.db.execute(
-                "UPDATE users SET email = ? WHERE id = ?",
-                (new_email, user_id),
+                f"UPDATE users SET {set_clause} WHERE id = ?",
+                params,
             )
-            updated = cur.rowcount > 0
             self._maybe_commit()
-            return updated
+            return cur.rowcount > 0
         except Exception:
             self._maybe_rollback()
             raise
 
     def delete_user(self, user_id: int) -> bool:
-        """Delete user; returns True when a row is deleted."""
         try:
-            cur = self.db.execute(
-                "DELETE FROM users WHERE id = ?",
-                (user_id,),
-            )
-            deleted = cur.rowcount > 0
+            cur = self.db.execute("DELETE FROM users WHERE id = ?", (user_id,))
             self._maybe_commit()
-            return deleted
+            return cur.rowcount > 0
         except Exception:
             self._maybe_rollback()
             raise

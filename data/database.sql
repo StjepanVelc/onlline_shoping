@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS admins (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL UNIQUE,
     email TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL DEFAULT '',
     privileges TEXT NOT NULL DEFAULT '[]'
 );
 

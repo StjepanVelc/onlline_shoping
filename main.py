@@ -1,1 +1,1 @@
-from data.routes import app
+from routes import app

@@ -28,7 +28,6 @@ class ProductOut(BaseModel):
 class OrderItemIn(BaseModel):
     product_id: int
     quantity: int = Field(..., gt=0)
-    price: float = Field(..., ge=0)
 
 
 class OrderCreate(BaseModel):

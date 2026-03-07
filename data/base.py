@@ -72,6 +72,16 @@ def init_db() -> None:
                 );
                 """
             )
+
+        # Lightweight migration for older databases created before admin auth.
+        admins_columns = {
+            row[1]
+            for row in cur.execute("PRAGMA table_info(admins)").fetchall()
+        }
+        if "password_hash" not in admins_columns:
+            cur.execute(
+                "ALTER TABLE admins ADD COLUMN password_hash TEXT NOT NULL DEFAULT ''"
+            )
         conn.commit()
     finally:
         conn.close()
