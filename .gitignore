@@ -3,7 +3,7 @@ venv/
 __pycache__/
 .vscode/
 *.pyc
-
+node_modules/
 # Local SQLite database file (generated at runtime)
 data/shop.db
 
