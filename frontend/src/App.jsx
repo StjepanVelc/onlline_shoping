@@ -5,23 +5,31 @@ import Products from "./pages/Products"
 import Orders from "./pages/Orders"
 
 function App() {
-
   return (
     <BrowserRouter>
 
-      <Routes>
+      <div className="layout">
 
-        <Route path="/" element={<Login />} />
+        <header className="header">
+          <h1>Online Shop</h1>
+        </header>
 
-        <Route path="/products" element={<Products />} />
+        <main className="main">
+          <Routes>
+            <Route path="/" element={<Login />} />
+            <Route path="/products" element={<Products />} />
+            <Route path="/orders" element={<Orders />} />
+          </Routes>
+        </main>
 
-        <Route path="/orders" element={<Orders />} />
+        <footer className="footer">
+          <p>© 2026 Online Shop</p>
+        </footer>
 
-      </Routes>
+      </div>
 
     </BrowserRouter>
   )
-
 }
 
 export default App

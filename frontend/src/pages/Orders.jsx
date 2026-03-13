@@ -1,6 +1,6 @@
 import { useState } from "react"
 
-const API = "http://localhost:8000"
+const API = "http://192.168.2.7:8000"
 
 function Orders() {
 

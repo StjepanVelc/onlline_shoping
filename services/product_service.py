@@ -1,3 +1,4 @@
+import sqlite3
 from typing import Dict, List, Optional
 
 from repositories.product_repo import ProductRepository
@@ -9,12 +10,16 @@ class ProductService:
         self.repo = repo
 
     def create_product(self, payload) -> Dict:
-        product_id = self.repo.create_product(
-            payload.name,
-            payload.description,
-            payload.price,
-            payload.stock,
-        )
+        try:
+            product_id = self.repo.create_product(
+                payload.name,
+                payload.description,
+                payload.price,
+                payload.stock,
+            )
+        except sqlite3.IntegrityError:
+            raise ValidationError("Product with this name already exists")
+
         return self.get_product(product_id)
 
     def list_products(self, q: Optional[str], limit: int, offset: int) -> List[Dict]:
