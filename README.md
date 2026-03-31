@@ -46,8 +46,12 @@ uvicorn main:app --reload
 docker compose up --build
 ```
 
+- Frontend: http://127.0.0.1:5173
 - API: http://127.0.0.1:8000
+- LAN test (other laptop): http://YOUR_PC_IP:5173
 - Data is persisted via volume mapping: `./data:/app/data`
+
+Docker setup uses a single root `Dockerfile` with two build targets (`backend` and `frontend`).
 
 ### 4. Access API
 
@@ -76,8 +80,3 @@ Form Data:
 ```
 
 Use the returned `access_token` as Bearer token in Swagger Authorize button.
-
-Run with Docker
-
-docker compose up --build
-API available at http://localhost:8000/docs

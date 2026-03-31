@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 
-const API = "http://192.168.2.7:8000"
+import { API, readApiError } from "../api"
 
 function Products() {
 
@@ -10,11 +10,24 @@ function Products() {
     const [description, setDescription] = useState("")
     const [price, setPrice] = useState("")
     const [stock, setStock] = useState("")
+    const [error, setError] = useState("")
+    const [success, setSuccess] = useState("")
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
-    const loadProducts = () => {
-        fetch(API + "/products")
-            .then(res => res.json())
-            .then(data => setProducts(data))
+    const loadProducts = async () => {
+        try {
+            const res = await fetch(API + "/products")
+            if (!res.ok) {
+                const message = await readApiError(res, "Failed to load products.")
+                setError(message)
+                return
+            }
+
+            const data = await res.json()
+            setProducts(data)
+        } catch {
+            setError("Unable to load products. Please try again.")
+        }
     }
 
     useEffect(() => {
@@ -22,35 +35,74 @@ function Products() {
     }, [])
 
     const addProduct = async () => {
+        setError("")
+        setSuccess("")
 
-        await fetch(API + "/products", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                name,
-                description,
-                price: Number(price),
-                stock: Number(stock)
+        if (!name.trim()) {
+            setError("Product name is required.")
+            return
+        }
+
+        if (price === "" || stock === "") {
+            setError("Price and stock are required.")
+            return
+        }
+
+        setIsSubmitting(true)
+
+        try {
+            const res = await fetch(API + "/products", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    name,
+                    description,
+                    price: Number(price),
+                    stock: Number(stock)
+                })
             })
-        })
 
-        setName("")
-        setDescription("")
-        setPrice("")
-        setStock("")
+            if (!res.ok) {
+                const message = await readApiError(res, "Failed to create the product.")
+                setError(message)
+                return
+            }
 
-        loadProducts()
+            setName("")
+            setDescription("")
+            setPrice("")
+            setStock("")
+            setSuccess("Product created successfully.")
+            await loadProducts()
+        } catch {
+            setError("Unable to reach the server. Please try again.")
+        } finally {
+            setIsSubmitting(false)
+        }
     }
 
     const deleteProduct = async (id) => {
+        setError("")
+        setSuccess("")
 
-        await fetch(API + "/products/" + id, {
-            method: "DELETE"
-        })
+        try {
+            const res = await fetch(API + "/products/" + id, {
+                method: "DELETE"
+            })
 
-        loadProducts()
+            if (!res.ok) {
+                const message = await readApiError(res, "Failed to delete the product.")
+                setError(message)
+                return
+            }
+
+            setSuccess("Product deleted successfully.")
+            await loadProducts()
+        } catch {
+            setError("Unable to reach the server. Please try again.")
+        }
     }
 
     return (
@@ -74,9 +126,14 @@ function Products() {
 
                     <input placeholder="stock" onChange={(e) => setStock(e.target.value)} />
 
-                    <button onClick={addProduct}>Add product</button>
+                    <button onClick={addProduct} disabled={isSubmitting}>
+                        {isSubmitting ? "Saving..." : "Add product"}
+                    </button>
 
                 </div>
+
+                {error ? <p className="form-message error-message">{error}</p> : null}
+                {success ? <p className="form-message success-message">{success}</p> : null}
 
 
                 <div className="grid">

@@ -6,4 +6,6 @@ __pycache__/
 node_modules/
 # Local SQLite database file (generated at runtime)
 data/shop.db
+logs/
+*.log
 

@@ -3,11 +3,25 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: backend
     container_name: online-shopping-api
     ports:
       - "8000:8000"
     volumes:
       - ./data:/app/data
+      - ./logs:/app/logs
     environment:
       - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: frontend
+    container_name: online-shopping-frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
     restart: unless-stopped
