@@ -115,3 +115,22 @@ class OrderOut(BaseModel):
     address: str
     status: str
     total_amount: float
+
+
+class OrderSummaryOut(BaseModel):
+    id: int
+    user_id: int
+    address: str
+    status: str
+    order_date: str
+    total_amount: Optional[float]
+
+
+class OrderItemOut(BaseModel):
+    product_id: int
+    quantity: int
+    price: float
+
+
+class OrderDetailOut(OrderSummaryOut):
+    items: List[OrderItemOut]

@@ -1,82 +1,130 @@
-﻿# Online Shopping Backend API
+﻿# Online Shopping API and Admin Panel
 
-## Project Description
+<p align="center">
+  Full-stack online shop project built with FastAPI, SQLite, and React.
+</p>
 
-RESTful backend API for e-commerce platform built with FastAPI. Implements secure user and product management with JWT authentication, role-based admin access, and server-side order processing.
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python" />
+  <img src="https://img.shields.io/badge/FastAPI-0.135-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/SQLite-3-003B57?style=for-the-badge&logo=sqlite&logoColor=white" alt="SQLite" />
+  <img src="https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=0b0f17" alt="React" />
+  <img src="https://img.shields.io/badge/Vite-Frontend-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite" />
+  <img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" />
+  <img src="https://img.shields.io/badge/JWT-Auth-black?style=for-the-badge&logo=jsonwebtokens&logoColor=white" alt="JWT" />
+</p>
 
-## Features
+---
 
-- **User Management** - CRUD operations with validation and search
-- **Product Catalog** - Inventory management with stock tracking
-- **Order Processing** - Server-side price calculation and stock validation
-- **Admin Panel** - JWT/OAuth2 protected admin endpoints with privilege-based authorization
-- **Pagination** - Query parameters (`limit`, `offset`) on all list endpoints
-- **Auto Documentation** - Swagger UI and ReDoc available out-of-the-box
+## Overview
+
+This project is a portfolio-ready online shopping system with:
+- FastAPI backend API
+- React + Vite admin frontend
+- SQLite database
+- JWT authentication and privilege-based admin authorization
+- Three-layer backend architecture: Routes -> Services -> Repositories
+
+---
+
+## Architecture Visuals
+
+### System Architecture
+
+![System Architecture](images/Arhicteture.png)
+
+### Backend Architecture
+
+![Backend Architecture](images/backhand.png)
+
+---
+
+## Core Features
+
+- User management with CRUD and search
+- Product catalog with stock tracking
+- Order creation with transactional stock updates and total calculation
+- Admin panel authentication with OAuth2 password flow and JWT
+- Role and privilege checks for admin endpoints
+- Pagination support on list endpoints
+- Swagger and ReDoc API documentation
+
+---
 
 ## Tech Stack
 
-- **FastAPI** - Modern async web framework
-- **SQLite** - Embedded relational database
-- **Pydantic** - Data validation and serialization
-- **JWT** - Token-based authentication (python-jose)
-- **OAuth2** - Password flow for secure login
-- **Uvicorn** - ASGI server
+- Backend: FastAPI, Pydantic, Uvicorn
+- Database: SQLite
+- Security: JWT, OAuth2 password flow, PBKDF2 password hashing
+- Frontend: React, Vite
+- Containerization: Docker, Docker Compose
+- Testing: Pytest
 
-**Architecture**: Three-tier pattern (Routes → Services → Repositories)
+---
 
-## How to Run
+## Project Structure
 
-### 1. Setup Environment
+```text
+data/            Database setup, schema, migrations
+docs/            Technical documentation and prompts
+frontend/        React + Vite admin interface
+IO/              Pydantic input/output models
+repositories/    Data access layer
+routes/          FastAPI route handlers
+services/        Business logic layer
+tests/           Automated tests (auth and orders)
+```
+
+---
+
+## Local Setup
+
+Setup instructions were moved to:
+- [docs/local-setup.md](docs/local-setup.md)
+
+---
+
+## Authentication Quick Start
+
+Authentication guide was moved to:
+- [docs/authentication-quick-start.md](docs/authentication-quick-start.md)
+
+---
+
+## Testing
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+python -m pytest -q
 ```
 
-### 2. Start Server
+Current tests cover:
+- Auth success and negative flows
+- Order creation, listing/details, and negative stock scenario
 
-```powershell
-uvicorn main:app --reload
-```
+---
 
-### 3. Run with Docker
+## Security and Environment
 
-```powershell
-docker compose up --build
-```
+Configuration example is available in .env.example.
 
-- Frontend: http://127.0.0.1:5173
-- API: http://127.0.0.1:8000
-- LAN test (other laptop): http://YOUR_PC_IP:5173
-- Data is persisted via volume mapping: `./data:/app/data`
+Important variables:
+- APP_ENV
+- JWT_SECRET_KEY
+- CORS_ALLOW_ORIGINS
+- CORS_ALLOW_CREDENTIALS
+- ALLOWED_HOSTS
 
-Docker setup uses a single root `Dockerfile` with two build targets (`backend` and `frontend`).
+For production:
+- set a strong JWT secret
+- restrict CORS to known domains
+- restrict trusted hosts
 
-### 4. Access API
+---
 
-- **Swagger UI**: http://127.0.0.1:8000/docs
-- **ReDoc**: http://127.0.0.1:8000/redoc
+## Documentation
 
-### 5. Bootstrap Admin (First Time)
-
-```http
-POST /auth/bootstrap-admin
-{
-  "username": "admin",
-  "email": "admin@example.com",
-  "password": "secure_password",
-  "privileges": ["super_admin"]
-}
-```
-
-### 6. Obtain JWT Token
-
-```http
-POST /auth/token
-Form Data:
-  username: admin
-  password: secure_password
-```
-
-Use the returned `access_token` as Bearer token in Swagger Authorize button.
+Detailed docs are available in the docs folder:
+- docs/system-architecture.md
+- docs/backend-detailed.md
+- docs/local-setup.md
+- docs/authentication-quick-start.md

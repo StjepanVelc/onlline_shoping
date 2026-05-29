@@ -1,9 +1,11 @@
 import logging
+import os
 import time
 from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import RedirectResponse, Response
 
 from data.base import lifespan
@@ -35,14 +37,40 @@ def _configure_logging() -> None:
 _configure_logging()
 logger = logging.getLogger("shop.api")
 
+
+def _env_bool(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _csv_env(name: str, default: str) -> list[str]:
+    raw = os.getenv(name, default)
+    return [item.strip() for item in raw.split(",") if item.strip()]
+
 app = FastAPI(title="Shop API (SQLite)", lifespan=lifespan)
+
+app_env = os.getenv("APP_ENV", "development").lower()
+default_origins = "http://localhost:5173,http://127.0.0.1:5173"
+allow_origins = _csv_env("CORS_ALLOW_ORIGINS", default_origins)
+allow_credentials = _env_bool("CORS_ALLOW_CREDENTIALS", False)
+allowed_hosts = _csv_env("ALLOWED_HOSTS", "localhost,127.0.0.1")
+
+if app_env != "production" and "*" not in allowed_hosts:
+    allowed_hosts.append("*")
+
+if app_env == "production" and "*" in allow_origins:
+    logger.warning("CORS_ALLOW_ORIGINS contains '*' in production. Restrict this variable.")
+
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=allow_origins,
+    allow_credentials=allow_credentials,
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],
 )
 
 
@@ -58,6 +86,18 @@ async def request_logger(request: Request, call_next):
         response.status_code,
         elapsed_ms,
     )
+    return response
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    if app_env == "production":
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response
 
 

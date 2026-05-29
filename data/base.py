@@ -6,6 +6,7 @@ from fastapi import FastAPI
 
 DB_PATH = Path("data/shop.db")
 SQL_INIT_FILE = Path("data/database.sql")
+MIGRATIONS_DIR = Path("data/migrations")
 DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 
@@ -82,9 +83,47 @@ def init_db() -> None:
             cur.execute(
                 "ALTER TABLE admins ADD COLUMN password_hash TEXT NOT NULL DEFAULT ''"
             )
+
+        _ensure_migrations_table(cur)
+        _apply_pending_migrations(cur)
         conn.commit()
     finally:
         conn.close()
+
+
+def _ensure_migrations_table(cur: sqlite3.Cursor) -> None:
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS schema_migrations (
+            filename TEXT PRIMARY KEY,
+            applied_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+        """
+    )
+
+
+def _applied_migrations(cur: sqlite3.Cursor) -> set[str]:
+    rows = cur.execute("SELECT filename FROM schema_migrations").fetchall()
+    return {str(row[0]) for row in rows}
+
+
+def _apply_pending_migrations(cur: sqlite3.Cursor) -> None:
+    if not MIGRATIONS_DIR.exists():
+        return
+
+    applied = _applied_migrations(cur)
+    migration_files = sorted(MIGRATIONS_DIR.glob("*.sql"))
+
+    for migration in migration_files:
+        if migration.name in applied:
+            continue
+        sql = migration.read_text(encoding="utf-8").strip()
+        if sql:
+            cur.executescript(sql)
+        cur.execute(
+            "INSERT INTO schema_migrations (filename) VALUES (?)",
+            (migration.name,),
+        )
 
 
 @asynccontextmanager

@@ -1,5 +1,5 @@
 import sqlite3
-from typing import Dict
+from typing import Dict, List, Optional
 
 from repositories.order_repo import OrderRepository
 from repositories.product_repo import ProductRepository
@@ -73,3 +73,25 @@ class OrderService:
         except Exception as exc:
             self.db.rollback()
             raise ValidationError(f"Order failed: {exc}") from exc
+
+    def list_orders(
+        self,
+        *,
+        user_id: Optional[int],
+        status: Optional[str],
+        limit: int,
+        offset: int,
+    ) -> List[Dict]:
+        return self.order_repo.list_orders(
+            user_id=user_id,
+            status=status,
+            limit=limit,
+            offset=offset,
+        )
+
+    def get_order_details(self, order_id: int) -> Dict:
+        order = self.order_repo.get_order_by_id(order_id)
+        if not order:
+            raise NotFoundError("Order not found")
+        order["items"] = self.order_repo.list_order_items(order_id)
+        return order

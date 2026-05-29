@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 
 class OrderRepository:
@@ -59,10 +59,53 @@ class OrderRepository:
     def get_order_by_id(self, order_id: int) -> Optional[Dict]:
         row = self.db.execute(
             """
-            SELECT id, user_id, address, status, total_amount
+            SELECT id, user_id, address, status, order_date, total_amount
             FROM orders
             WHERE id = ?
             """,
             (order_id,),
         ).fetchone()
         return self._row_to_dict(row)
+
+    def list_orders(
+        self,
+        *,
+        user_id: Optional[int],
+        status: Optional[str],
+        limit: int,
+        offset: int,
+    ) -> List[Dict]:
+        sql = """
+            SELECT id, user_id, address, status, order_date, total_amount
+            FROM orders
+        """
+        where_clauses = []
+        params: List[object] = []
+
+        if user_id is not None:
+            where_clauses.append("user_id = ?")
+            params.append(user_id)
+        if status is not None:
+            where_clauses.append("status = ?")
+            params.append(status)
+
+        if where_clauses:
+            sql += " WHERE " + " AND ".join(where_clauses)
+
+        sql += " ORDER BY id DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+
+        rows = self.db.execute(sql, params).fetchall()
+        return [dict(row) for row in rows]
+
+    def list_order_items(self, order_id: int) -> List[Dict]:
+        rows = self.db.execute(
+            """
+            SELECT product_id, quantity, price
+            FROM order_items
+            WHERE order_id = ?
+            ORDER BY product_id
+            """,
+            (order_id,),
+        ).fetchall()
+        return [dict(row) for row in rows]
