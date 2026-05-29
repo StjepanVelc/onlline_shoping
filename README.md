@@ -5,6 +5,9 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/StjepanVelc/online-shop-api/actions/workflows/ci.yml">
+    <img src="https://github.com/StjepanVelc/online-shop-api/actions/workflows/ci.yml/badge.svg" alt="CI" />
+  </a>
   <img src="https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python" />
   <img src="https://img.shields.io/badge/FastAPI-0.135-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
   <img src="https://img.shields.io/badge/SQLite-3-003B57?style=for-the-badge&logo=sqlite&logoColor=white" alt="SQLite" />
@@ -31,11 +34,11 @@ This project is a portfolio-ready online shopping system with:
 
 ### System Architecture
 
-![System Architecture](images/Arhicteture.png)
+![System Architecture](images/system-architecture.png)
 
 ### Backend Architecture
 
-![Backend Architecture](images/backhand.png)
+![Backend Architecture](images/backend-architecture.png)
 
 ---
 
